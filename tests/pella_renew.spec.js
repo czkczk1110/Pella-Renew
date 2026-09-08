@@ -523,10 +523,10 @@ test('Pella 自动续期', async () => {
             console.log(`⚠️ #continue 未找到：${e.message}`);
         }
        // ── CF Turnstile 验证 ─────────────────────────────────
-        const hasTurnstile = await page.evaluate(
+        const hasTurnstile2 = await page.evaluate(
             '!!document.querySelector("input[name=\'cf-turnstile-response\']")'
         );
-        if (hasTurnstile) {
+        if (hasTurnstile2) {
             console.log('🛡️ 检测到 CF Turnstile，开始处理...');
             const cfOk = await solveTurnstile(page);
             if (!cfOk) {
