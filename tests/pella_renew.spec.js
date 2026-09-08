@@ -522,6 +522,20 @@ test('Pella 自动续期', async () => {
         } catch (e) {
             console.log(`⚠️ #continue 未找到：${e.message}`);
         }
+       // ── CF Turnstile 验证 ─────────────────────────────────
+        const hasTurnstile = await page.evaluate(
+            '!!document.querySelector("input[name=\'cf-turnstile-response\']")'
+        );
+        if (hasTurnstile) {
+            console.log('🛡️ 检测到 CF Turnstile，开始处理...');
+            const cfOk = await solveTurnstile(page);
+            if (!cfOk) {
+                await sendTG('❌ CF Turnstile 验证失败');
+                throw new Error('❌ CF Turnstile 验证失败');
+            }
+        }
+
+        // ── 点击i am not robot
         console.log('📤 点击 i am not robot...');
         try {
             await page.waitForSelector('#submit-button', { timeout: 10000 });
