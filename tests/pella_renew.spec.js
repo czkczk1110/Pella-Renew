@@ -515,8 +515,8 @@ test('Pella 自动续期', async () => {
         // ── 点击 #continue ────────────────────────────────────
         console.log('📤 点击 Continue...');
         try {
-            await page.waitForSelector('#continue', { timeout: 10000 });
-            await page.click('#continue');
+            await page.waitForSelector('#submit-button', { timeout: 10000 });
+            await page.click('#submit-button');
             await sleep(3000);
             console.log(`📄 跳转后: ${page.url()}`);
         } catch (e) {
