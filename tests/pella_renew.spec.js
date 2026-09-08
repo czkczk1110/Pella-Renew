@@ -170,16 +170,35 @@ function sendTG(result, extra = '') {
     });
 }
 
+// ── 查找浏览器窗口（兼容多种窗口类名）─────────────────────────
+function findChromeWindows() {
+    // Playwright 的 chromium 窗口类名是 chromium/Chromium，不是 chrome
+    const patterns = ['chromium', 'chrome', 'google-chrome', 'Chromium', 'Google-chrome', 'crx_'];
+    for (const cls of patterns) {
+        try {
+            const out = execSync(`xdotool search --onlyvisible --class "${cls}"`, { timeout: 3000 })
+                .toString().trim().split('\n').filter(Boolean);
+            if (out.length > 0) return out;
+        } catch (e) { /* 该类名没匹配到，试下一个 */ }
+    }
+    return [];
+}
+
 // ── xdotool 点击绝对坐标 ────────────────────────────────────
 function xdotoolClick(x, y) {
     x = Math.round(x);
     y = Math.round(y);
     try {
-        const wids = execSync('xdotool search --onlyvisible --class chrome', { timeout: 3000 })
-            .toString().trim().split('\n').filter(Boolean);
+        const wids = findChromeWindows();
         if (wids.length > 0) {
-            execSync(`xdotool windowactivate ${wids[wids.length - 1]}`, { timeout: 2000, stdio: 'ignore' });
-            execSync('sleep 0.2', { stdio: 'ignore' });
+            try {
+                execSync(`xdotool windowactivate ${wids[wids.length - 1]}`, { timeout: 2000, stdio: 'ignore' });
+                execSync('sleep 0.2', { stdio: 'ignore' });
+            } catch (e) {
+                console.log(`⚠️ windowactivate 失败，继续尝试点击：${e.message}`);
+            }
+        } else {
+            console.log('⚠️ 未找到浏览器窗口，直接按屏幕坐标点击（Xvfb 下通常可行）');
         }
         execSync(`xdotool mousemove ${x} ${y}`, { timeout: 2000 });
         execSync('sleep 0.15', { stdio: 'ignore' });
@@ -195,8 +214,7 @@ function xdotoolClick(x, y) {
 // ── 获取窗口偏移量 ──────────────────────────────────────────
 async function getWindowOffset(page) {
     try {
-        const wids = execSync('xdotool search --onlyvisible --class chrome', { timeout: 3000 })
-            .toString().trim().split('\n').filter(Boolean);
+        const wids = findChromeWindows();
         if (wids.length > 0) {
             const geo = execSync(`xdotool getwindowgeometry --shell ${wids[wids.length - 1]}`, { timeout: 3000 }).toString();
             const geoDict = {};
@@ -512,39 +530,19 @@ test('Pella 自动续期', async () => {
             }
         }
 
-        // ── 点击 #continue ────────────────────────────────────
+        // ── 点击 Continue（cuty.io 按钮 id 为 #submit-button）───
         console.log('📤 点击 Continue...');
         try {
-            await page.waitForSelector('#submit-button', { timeout: 10000 });
+            await page.waitForSelector('#submit-button', { timeout: 15000 });
             await page.click('#submit-button');
             await sleep(3000);
             console.log(`📄 跳转后: ${page.url()}`);
         } catch (e) {
-            console.log(`⚠️ #continue 未找到：${e.message}`);
-        }
-       // ── CF Turnstile 验证 ─────────────────────────────────
-        const hasTurnstile2 = await page.evaluate(
-            '!!document.querySelector("input[name=\'cf-turnstile-response\']")'
-        );
-        if (hasTurnstile2) {
-            console.log('🛡️ 检测到 CF Turnstile，开始处理...');
-            const cfOk = await solveTurnstile(page);
-            if (!cfOk) {
-                await sendTG('❌ CF Turnstile 验证失败');
-                throw new Error('❌ CF Turnstile 验证失败');
-            }
+            console.log(`❌ #submit-button 未找到：${e.message}`);
+            await page.screenshot({ path: 'continue_fail.png' }).catch(() => {});
+            throw new Error('❌ Continue(#submit-button) 未找到: ' + e.message);
         }
 
-        // ── 点击i am not robot
-        console.log('📤 点击 i am not robot...');
-        try {
-            await page.waitForSelector('#submit-button', { timeout: 10000 });
-            await page.click('#submit-button');
-            await sleep(3000);
-            console.log(`📄 跳转后: ${page.url()}`);
-        } catch (e) {
-            console.log(`⚠️ #i am not robot 未找到：${e.message}`);
-        }
         // ── 处理中转页（fitnesstipz，可能多个）──────────────────
         let loopCount = 0;
         while (page.url().includes('fitnesstipz.com') && loopCount < 5) {
