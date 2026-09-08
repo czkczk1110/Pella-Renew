@@ -16,6 +16,7 @@ const AD_BLOCK_SCRIPT = `
     'use strict';
 
     // ===== document-start 阶段：拦截广告脚本加载 =====
+    if (location.hostname.endsWith('cuty.io') || location.hostname.endsWith('cuttty.com')) return;
     const blockedScriptDomains = ['madurird.com', 'crn77.com', 'fqjiujafk.com'];
     new MutationObserver(mutations => {
         mutations.forEach(m => {
