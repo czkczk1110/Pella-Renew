@@ -522,7 +522,15 @@ test('Pella 自动续期', async () => {
         } catch (e) {
             console.log(`⚠️ #continue 未找到：${e.message}`);
         }
-
+        console.log('📤 点击 i am not robot...');
+        try {
+            await page.waitForSelector('#submit-button', { timeout: 10000 });
+            await page.click('#submit-button');
+            await sleep(3000);
+            console.log(`📄 跳转后: ${page.url()}`);
+        } catch (e) {
+            console.log(`⚠️ #i am not robot 未找到：${e.message}`);
+        }
         // ── 处理中转页（fitnesstipz，可能多个）──────────────────
         let loopCount = 0;
         while (page.url().includes('fitnesstipz.com') && loopCount < 5) {
